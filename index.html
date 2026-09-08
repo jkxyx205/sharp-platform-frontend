@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sharp Platform</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <section id="loginView" class="panel auth-panel">
+        <div class="panel-header">
+          <h1>登录</h1>
+        </div>
+        <form id="loginForm" class="form-stack">
+          <label>
+            <span>手机号</span>
+            <input id="mobile" type="tel" value="17787878767" placeholder="请输入手机号" required />
+          </label>
+          <label>
+            <span>密码</span>
+            <input id="password" type="password" value="111111" placeholder="请输入密码" required />
+          </label>
+          <button type="submit" class="primary-btn">登录</button>
+        </form>
+      </section>
+
+      <section id="homeView" class="panel hidden">
+        <div class="panel-header home-header">
+          <div>
+            <p class="eyebrow">欢迎</p>
+            <h1 id="welcomeText">首页</h1>
+          </div>
+          <button id="logoutBtn" class="secondary-btn" type="button">退出登录</button>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2>上传文件</h2>
+            <div class="form-stack compact-form">
+              <label>
+                <span>公司 ID</span>
+                <input id="groupId" type="number" min="1" value="999" />
+              </label>
+              <label>
+                <span>分组名称</span>
+                <input id="groupName" type="text" value="upload" placeholder="例如 upload" />
+              </label>
+              <label>
+                <span>选择文件</span>
+                <input id="uploadFile" type="file" />
+              </label>
+              <button id="uploadBtn" type="button" class="primary-btn">上传</button>
+            </div>
+            <p id="uploadStatus" class="status-text"></p>
+          </div>
+
+          <div class="card action-card">
+            <h2>消息测试</h2>
+
+            <button id="sendMessageBtn" type="button" class="primary-btn">获取服务端消息</button>
+            <p id="sendMessageStatus" class="status-text"></p>
+            
+            <hr />
+            <textarea id="stompMessageInput" rows="3" placeholder="输入要发送的消息内容">内容</textarea>
+            <button id="sendMessage2Btn" type="button" class="secondary-btn">发送消息</button>
+            
+          </div>
+
+          <div class="card">
+            <h2>已上传文件</h2>
+            <ul id="fileList" class="file-list"></ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="./vendor/sockjs.min.js"></script>
+    <script src="./vendor/stomp.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
