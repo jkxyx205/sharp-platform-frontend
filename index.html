@@ -15,12 +15,24 @@
         <form id="loginForm" class="form-stack">
           <label>
             <span>手机号</span>
-            <input id="mobile" type="tel" value="17787878767" placeholder="请输入手机号" required />
+            <input id="mobile" type="tel" value="" placeholder="请输入手机号" required />
           </label>
           <label>
             <span>密码</span>
-            <input id="password" type="password" value="111111" placeholder="请输入密码" required />
+            <input id="password" type="password" value="" placeholder="请输入密码" required />
           </label>
+
+          <div class="captcha-row">
+            <label>
+              <!-- <span>图片验证码</span> -->
+              <input id="captchaInput" type="text" placeholder="输入图片中的字符" required/>
+            </label>
+            <div class="captcha-box">
+              <img id="captchaImage" alt="验证码" title="点击刷新验证码" />
+              <!-- <button id="refreshCaptchaBtn" type="button" class="secondary-btn">刷新</button> -->
+            </div>
+          </div>
+
           <button type="submit" class="primary-btn">登录</button>
         </form>
       </section>
@@ -60,7 +72,7 @@
 
             <button id="sendMessageBtn" type="button" class="primary-btn">获取服务端消息</button>
             <p id="sendMessageStatus" class="status-text"></p>
-            
+
             <hr />
             <textarea id="stompMessageInput" rows="3" placeholder="输入要发送的消息内容">内容</textarea>
             <button id="sendMessage2Btn" type="button" class="secondary-btn">发送消息</button>

@@ -71,6 +71,33 @@ input {
   gap: 16px;
 }
 
+.captcha-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.captcha-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#captchaImage {
+  height: 48px;
+  width: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#captchaInput {
+  /* width: 220px; */
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
 .form-stack label {
   display: grid;
   gap: 8px;

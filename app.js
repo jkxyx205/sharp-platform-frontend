@@ -2,6 +2,7 @@ const BASE_URL = 'http://localhost:8769';
 const TOKEN_KEY = 'sharp_platform_token';
 const USER_KEY = 'sharp_platform_user';
 const UPLOADED_FILES_KEY = 'uploaded_files';
+const DEVICE_ID_KEY = 'sharp_platform_device_id';
 
 const loginView = document.getElementById('loginView');
 const homeView = document.getElementById('homeView');
@@ -21,10 +22,25 @@ const groupIdInput = document.getElementById('groupId');
 const groupNameInput = document.getElementById('groupName');
 const uploadFileInput = document.getElementById('uploadFile');
 
+// captcha elements
+const captchaInput = document.getElementById('captchaInput');
+const captchaImage = document.getElementById('captchaImage');
+const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+let _lastCaptchaUrl = null;
+
 let stompClient = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+function getDeviceId() {
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = `${Date.now()}${Math.random().toString(10).slice(2, 10)}`;
+    localStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+  return deviceId;
 }
 
 function getStoredUser() {
@@ -121,12 +137,19 @@ async function login() {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/auth/login`, {
+    const deviceId = getDeviceId();
+    const payload = { mobile, password, deviceId };
+    if (captchaInput && captchaInput.value) {
+      payload.captcha = captchaInput.value.trim();
+    }
+
+    const response = await fetch(`${BASE_URL}/auth/login?code=${payload.captcha}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'deviceId': deviceId,
       },
-      body: JSON.stringify({ mobile, password }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -151,6 +174,35 @@ async function login() {
   } catch (error) {
     console.error('Login failed', error);
     showToast(error.message || '登录失败');
+  }
+}
+
+async function fetchCaptcha() {
+  const deviceId = getDeviceId();
+  try {
+    const resp = await fetch(`${BASE_URL}/image/login`, {
+      method: 'GET',
+      headers: {
+        deviceId,
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error('获取验证码失败');
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+
+    if (_lastCaptchaUrl) {
+      try { URL.revokeObjectURL(_lastCaptchaUrl); } catch (e) { /* ignore */ }
+    }
+    _lastCaptchaUrl = url;
+    captchaImage.src = url;
+  } catch (error) {
+    console.warn('fetchCaptcha error', error);
+    captchaImage.removeAttribute('src');
+    showToast(error.message || '无法加载验证码');
   }
 }
 
@@ -330,6 +382,17 @@ function sendMessageViaStomp() {
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   login();
+});
+
+// captcha interactions
+// if (refreshCaptchaBtn) refreshCaptchaBtn.addEventListener('click', fetchCaptcha);
+if (captchaImage) captchaImage.addEventListener('click', fetchCaptcha);
+// if (mobileInput) mobileInput.addEventListener('blur', fetchCaptcha);
+
+// initial captcha load
+window.addEventListener('load', () => {
+  // load captcha for current mobile value
+  fetchCaptcha();
 });
 
 logoutBtn.addEventListener('click', logout);
