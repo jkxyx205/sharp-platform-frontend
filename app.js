@@ -28,6 +28,12 @@ const captchaImage = document.getElementById('captchaImage');
 const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
 let _lastCaptchaUrl = null;
 
+// sms elements
+const smsCodeInput = document.getElementById('smsCodeInput');
+const getSmsBtn = document.getElementById('getSmsBtn');
+const smsLoginBtn = document.getElementById('smsLoginBtn');
+const smsStatus = document.getElementById('smsStatus');
+
 let stompClient = null;
 
 function getToken() {
@@ -379,6 +385,99 @@ function sendMessageViaStomp() {
   showToast('已发送 STOMP 消息');
 }
 
+// SMS code: request and mobile-login
+async function requestSmsCode() {
+  const mobile = (mobileInput.value || '').trim();
+  if (!mobile) {
+    showToast('请输入手机号以获取短信验证码');
+    smsStatus.textContent = '请输入手机号';
+    return;
+  }
+
+  const deviceId = getDeviceId();
+  const token = getToken();
+
+  getSmsBtn.disabled = true;
+  getSmsBtn.textContent = '发送中...';
+  smsStatus.textContent = '';
+
+  try {
+    const headers = { deviceId };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${BASE_URL}/sms/${encodeURIComponent(mobile)}/mobile_login`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || '获取验证码失败');
+    }
+
+    smsStatus.textContent = '验证码已发送';
+    showToast('验证码已发送');
+  } catch (error) {
+    console.error('requestSmsCode failed', error);
+    smsStatus.textContent = error.message || '获取验证码失败';
+    showToast(error.message || '获取验证码失败');
+  } finally {
+    getSmsBtn.disabled = false;
+    getSmsBtn.textContent = '获取验证码';
+  }
+}
+
+async function mobileLoginWithCode() {
+  const mobile = (mobileInput.value || '').trim();
+  const code = (smsCodeInput.value || '').trim();
+
+  if (!mobile || !code) {
+    showToast('请输入手机号和短信验证码');
+    smsStatus.textContent = '请输入手机号和验证码';
+    return;
+  }
+
+  const deviceId = getDeviceId();
+
+  smsLoginBtn.disabled = true;
+  smsLoginBtn.textContent = '登录中...';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/auth/mobile_login?mobile=${mobile}&code=${encodeURIComponent(code)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        deviceId,
+      },
+      body: JSON.stringify({ mobile, password: code }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || '短信登录失败');
+    }
+
+    const data = await resp.json();
+    const token = data.token;
+    if (!token) throw new Error('未返回 token');
+
+    localStorage.setItem(TOKEN_KEY, token);
+    if (data.user) localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+
+    smsStatus.textContent = '登录成功';
+    showToast('登录成功');
+    renderApp();
+    connectMessageSocket(token);
+  } catch (error) {
+    console.error('mobileLoginWithCode failed', error);
+    smsStatus.textContent = error.message || '短信登录失败';
+    showToast(error.message || '短信登录失败');
+  } finally {
+    smsLoginBtn.disabled = false;
+    smsLoginBtn.textContent = '使用短信登录';
+  }
+}
+
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   login();
@@ -399,6 +498,9 @@ logoutBtn.addEventListener('click', logout);
 uploadBtn.addEventListener('click', uploadFile);
 sendMessageBtn.addEventListener('click', sendTestMessage);
 sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
+
+if (getSmsBtn) getSmsBtn.addEventListener('click', requestSmsCode);
+if (smsLoginBtn) smsLoginBtn.addEventListener('click', mobileLoginWithCode);
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();

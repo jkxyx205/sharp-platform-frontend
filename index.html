@@ -32,8 +32,22 @@
               <!-- <button id="refreshCaptchaBtn" type="button" class="secondary-btn">刷新</button> -->
             </div>
           </div>
-
           <button type="submit" class="primary-btn">登录</button>
+
+           <span>短信验证码</span>
+          <div class="sms-row">
+            <label>
+              <input id="smsCodeInput" type="text" placeholder="输入短信验证码" />
+            </label>
+            <div class="sms-actions">
+              <button id="getSmsBtn" type="button" class="secondary-btn">获取验证码</button>
+            </div>
+            
+          </div>
+          <button id="smsLoginBtn" type="button" class="primary-btn">使用短信登录</button>
+          <p id="smsStatus" class="status-text"></p>
+
+          
         </form>
       </section>
 

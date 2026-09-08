@@ -98,6 +98,25 @@ input {
   padding: 10px 12px;
 }
 
+.sms-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sms-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#smsCodeInput {
+  width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
 .form-stack label {
   display: grid;
   gap: 8px;

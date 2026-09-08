@@ -4,6 +4,8 @@ BASE_URL = http://localhost:8769
 
 ## 登录
 
+### 手机/密码登录
+
 curl --location 'http://localhost:8769/auth/login' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -22,6 +24,33 @@ curl --location 'http://localhost:8769/auth/login' \
     }
 }
 ```
+
+### 手机验证码
+
+获取手机验证码：
+    curl --location 'http://localhost:8769/sms/{mobile}/mobile_login' \
+--header 'deviceId: {mobile}' \
+--header 'Authorization: Bearer <token>'
+
+发送登录请求：
+curl --location 'http://localhost:8769/auth/mobile_login?code=${code}' \
+--header 'Content-Type: application/json' \
+--header 'deviceId: {mobile}' \
+--data '{
+    "mobile": "17787878767"
+}'
+
+```
+{
+    "token": "e89faea9e23e4bcab0e6aa7ed0769162",
+    "user": {
+        "id": 1127646863076364288,
+        "nickname": "sm",
+        "mobile": "17787878767",
+        "avatar": null
+    }
+}
+
 
 ## 退出登录
 
