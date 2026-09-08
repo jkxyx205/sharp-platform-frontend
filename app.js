@@ -34,6 +34,11 @@ const getSmsBtn = document.getElementById('getSmsBtn');
 const smsLoginBtn = document.getElementById('smsLoginBtn');
 const smsStatus = document.getElementById('smsStatus');
 
+// erp elements
+const erpBtn = document.getElementById('erpBtn');
+const erpStatus = document.getElementById('erpStatus');
+const erpData = document.getElementById('erpData');
+
 let stompClient = null;
 
 function getToken() {
@@ -366,6 +371,42 @@ async function sendTestMessage() {
   }
 }
 
+async function fetchErpCurrentPlant() {
+  const token = getToken();
+  if (!token) {
+    showToast('请先登录');
+    if (erpStatus) erpStatus.textContent = '请先登录';
+    return;
+  }
+
+  if (erpStatus) erpStatus.textContent = '加载中...';
+  if (erpData) erpData.textContent = '';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/erp/999/plants/current`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || `请求失败: ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    if (erpData) erpData.textContent = text;
+    if (erpStatus) erpStatus.textContent = '加载成功';
+    showToast('ERP 数据加载成功');
+  } catch (error) {
+    console.error('fetchErpCurrentPlant failed', error);
+    if (erpStatus) erpStatus.textContent = error.message || '加载失败';
+    if (erpData) erpData.textContent = '';
+    showToast(error.message || '加载 ERP 数据失败');
+  }
+}
+
 function sendMessageViaStomp() {
   if (!stompClient || !stompClient.connected) {
     showToast('消息通道未连接');
@@ -501,6 +542,7 @@ sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
 
 if (getSmsBtn) getSmsBtn.addEventListener('click', requestSmsCode);
 if (smsLoginBtn) smsLoginBtn.addEventListener('click', mobileLoginWithCode);
+if (erpBtn) erpBtn.addEventListener('click', fetchErpCurrentPlant);
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();

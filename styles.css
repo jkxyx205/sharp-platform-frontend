@@ -201,6 +201,23 @@ input {
   gap: 12px;
 }
 
+.erp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.erp-data {
+  white-space: pre-wrap;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
 #stompMessageInput {
   width: 100%;
   border: 1px solid var(--line);
