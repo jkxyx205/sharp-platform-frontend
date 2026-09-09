@@ -5,8 +5,10 @@ const UPLOADED_FILES_KEY = 'uploaded_files';
 const DEVICE_ID_KEY = 'sharp_platform_device_id';
 
 const loginView = document.getElementById('loginView');
+const registerView = document.getElementById('registerView');
 const homeView = document.getElementById('homeView');
 const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
 const mobileInput = document.getElementById('mobile');
 const passwordInput = document.getElementById('password');
 const welcomeText = document.getElementById('welcomeText');
@@ -21,25 +23,37 @@ const fileList = document.getElementById('fileList');
 const groupIdInput = document.getElementById('groupId');
 const groupNameInput = document.getElementById('groupName');
 const uploadFileInput = document.getElementById('uploadFile');
+const goRegisterLink = document.getElementById('goRegisterLink');
+const goLoginLink = document.getElementById('goLoginLink');
 
-// captcha elements
 const captchaInput = document.getElementById('captchaInput');
 const captchaImage = document.getElementById('captchaImage');
 const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+const dialogOverlay = document.getElementById('dialogOverlay');
+const dialogTitle = document.getElementById('dialogTitle');
+const dialogMessage = document.getElementById('dialogMessage');
+const dialogCloseBtn = document.getElementById('dialogCloseBtn');
 let _lastCaptchaUrl = null;
 
-// sms elements
 const smsCodeInput = document.getElementById('smsCodeInput');
 const getSmsBtn = document.getElementById('getSmsBtn');
 const smsLoginBtn = document.getElementById('smsLoginBtn');
 const smsStatus = document.getElementById('smsStatus');
 
-// erp elements
+const registerNicknameInput = document.getElementById('registerNickname');
+const registerMobileInput = document.getElementById('registerMobile');
+const registerPasswordInput = document.getElementById('registerPassword');
+const registerCodeInput = document.getElementById('registerCodeInput');
+const getRegisterSmsBtn = document.getElementById('getRegisterSmsBtn');
+const registerStatus = document.getElementById('registerStatus');
+
 const erpBtn = document.getElementById('erpBtn');
 const erpStatus = document.getElementById('erpStatus');
 const erpData = document.getElementById('erpData');
 
 let stompClient = null;
+let smsCountdownTimer = null;
+let registerCountdownTimer = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || '';
@@ -82,10 +96,50 @@ function saveUploadedFiles(files) {
   localStorage.setItem(UPLOADED_FILES_KEY, JSON.stringify(files));
 }
 
+function startCountdown(button, seconds, defaultText, suffix = 's', timerKey = null) {
+  if (!button) return;
+
+  if (timerKey) {
+    const existingTimer = timerKey === 'sms' ? smsCountdownTimer : registerCountdownTimer;
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+  }
+
+  let remaining = seconds;
+  button.disabled = true;
+  const tick = () => {
+    button.textContent = `${remaining}${suffix}`;
+    remaining -= 1;
+    if (remaining < 0) {
+      button.disabled = false;
+      button.textContent = defaultText;
+      if (timerKey === 'sms') smsCountdownTimer = null;
+      if (timerKey === 'register') registerCountdownTimer = null;
+      return;
+    }
+    const timer = window.setTimeout(tick, 1000);
+    if (timerKey === 'sms') smsCountdownTimer = timer;
+    if (timerKey === 'register') registerCountdownTimer = timer;
+  };
+  tick();
+}
+
+function showLoginView() {
+  loginView.classList.remove('hidden');
+  registerView.classList.add('hidden');
+}
+
+function showRegisterView() {
+  loginView.classList.add('hidden');
+  registerView.classList.remove('hidden');
+}
+
 function renderApp() {
   const token = getToken();
   const isLoggedIn = Boolean(token);
   loginView.classList.toggle('hidden', isLoggedIn);
+  registerView.classList.add('hidden');
   homeView.classList.toggle('hidden', !isLoggedIn);
 
   if (isLoggedIn) {
@@ -106,6 +160,31 @@ function showToast(message) {
   window.setTimeout(() => {
     toast.remove();
   }, 5000);
+}
+
+function showMessageDialog(title, message) {
+  if (!dialogOverlay || !dialogTitle || !dialogMessage || !dialogCloseBtn) {
+    showToast(message || title || '提示');
+    return;
+  }
+
+  dialogTitle.textContent = title || '提示';
+  dialogMessage.textContent = message || '';
+  dialogOverlay.classList.remove('hidden');
+}
+
+function closeMessageDialog() {
+  if (dialogOverlay) {
+    dialogOverlay.classList.add('hidden');
+  }
+}
+
+if (dialogOverlay) {
+  dialogOverlay.addEventListener('click', (event) => {
+    if (event.target === dialogOverlay) {
+      closeMessageDialog();
+    }
+  });
 }
 
 async function logout() {
@@ -134,6 +213,7 @@ async function logout() {
     });
   }
 
+  showLoginView();
   renderApp();
   showToast('已退出登录');
 }
@@ -141,24 +221,25 @@ async function logout() {
 async function login() {
   const mobile = mobileInput.value.trim();
   const password = passwordInput.value.trim();
+  const captchaCode = captchaInput && captchaInput.value ? captchaInput.value.trim() : '';
 
   if (!mobile || !password) {
-    showToast('请输入手机号和密码');
+    showMessageDialog('提示', '请输入手机号和密码');
     return;
   }
 
   try {
     const deviceId = getDeviceId();
     const payload = { mobile, password, deviceId };
-    if (captchaInput && captchaInput.value) {
-      payload.captcha = captchaInput.value.trim();
+    if (captchaCode) {
+      payload.captcha = captchaCode;
     }
 
-    const response = await fetch(`${BASE_URL}/auth/login?code=${payload.captcha}`, {
+    const response = await fetch(`${BASE_URL}/auth/login?code=${encodeURIComponent(captchaCode)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'deviceId': deviceId,
+        deviceId,
       },
       body: JSON.stringify(payload),
     });
@@ -182,9 +263,10 @@ async function login() {
 
     renderApp();
     connectMessageSocket(token);
+    showToast('登录成功');
   } catch (error) {
     console.error('Login failed', error);
-    showToast(error.message || '登录失败');
+    showMessageDialog('登录失败', error.message || '登录失败');
   }
 }
 
@@ -206,7 +288,11 @@ async function fetchCaptcha() {
     const url = URL.createObjectURL(blob);
 
     if (_lastCaptchaUrl) {
-      try { URL.revokeObjectURL(_lastCaptchaUrl); } catch (e) { /* ignore */ }
+      try {
+        URL.revokeObjectURL(_lastCaptchaUrl);
+      } catch (error) {
+        // ignore revoke failure
+      }
     }
     _lastCaptchaUrl = url;
     captchaImage.src = url;
@@ -227,7 +313,7 @@ function connectMessageSocket(token) {
   }
 
   const messageUrl = `${BASE_URL}/api/platform`;
-  const socket = new SockJS(messageUrl + '/ws/message?access_token=' + encodeURIComponent(token));
+  const socket = new SockJS(`${messageUrl}/ws/message?access_token=${encodeURIComponent(token)}`);
   stompClient = Stomp.over(socket);
 
   stompClient.connect(
@@ -421,12 +507,11 @@ function sendMessageViaStomp() {
     return;
   }
 
-  stompClient.send('/app/echo', {}, payload);
+  stompClient.send('/api/platform/app/echo', {}, payload);
   sendMessageStatus.textContent = `已通过 STOMP 发送消息：${payload}`;
   showToast('已发送 STOMP 消息');
 }
 
-// SMS code: request and mobile-login
 async function requestSmsCode() {
   const mobile = (mobileInput.value || '').trim();
   if (!mobile) {
@@ -444,7 +529,9 @@ async function requestSmsCode() {
 
   try {
     const headers = { deviceId };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     const resp = await fetch(`${BASE_URL}/sms/${encodeURIComponent(mobile)}/mobile_login`, {
       method: 'GET',
@@ -458,11 +545,11 @@ async function requestSmsCode() {
 
     smsStatus.textContent = '验证码已发送';
     showToast('验证码已发送');
+    startCountdown(getSmsBtn, 60, '获取验证码', 's', 'sms');
   } catch (error) {
     console.error('requestSmsCode failed', error);
     smsStatus.textContent = error.message || '获取验证码失败';
     showToast(error.message || '获取验证码失败');
-  } finally {
     getSmsBtn.disabled = false;
     getSmsBtn.textContent = '获取验证码';
   }
@@ -519,33 +606,137 @@ async function mobileLoginWithCode() {
   }
 }
 
+async function requestRegisterSmsCode() {
+  const mobile = (registerMobileInput.value || '').trim();
+  if (!mobile) {
+    registerStatus.textContent = '请输入手机号';
+    showToast('请输入手机号');
+    return;
+  }
+
+  getRegisterSmsBtn.disabled = true;
+  getRegisterSmsBtn.textContent = '发送中...';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/sms/${encodeURIComponent(mobile)}/register`, {
+      method: 'GET',
+      headers: {
+        deviceId: getDeviceId(),
+      },
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || '获取注册验证码失败');
+    }
+
+    registerStatus.textContent = '注册验证码已发送';
+    showToast('注册验证码已发送');
+    startCountdown(getRegisterSmsBtn, 60, '获取验证码', 's', 'register');
+  } catch (error) {
+    registerStatus.textContent = error.message || '获取注册验证码失败';
+    showToast(error.message || '获取注册验证码失败');
+    getRegisterSmsBtn.disabled = false;
+    getRegisterSmsBtn.textContent = '获取验证码';
+  }
+}
+
+async function registerUser(event) {
+  event.preventDefault();
+
+  const nickname = (registerNicknameInput.value || '').trim();
+  const mobile = (registerMobileInput.value || '').trim();
+  const password = (registerPasswordInput.value || '').trim();
+  const code = (registerCodeInput.value || '').trim();
+
+  if (!nickname || !mobile || !password || !code) {
+    registerStatus.textContent = '请填写昵称、手机号、密码和注册验证码';
+    showToast('请填写完整注册信息');
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${BASE_URL}/auth/register?mobile=${encodeURIComponent(mobile)}&code=${encodeURIComponent(code)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        deviceId: getDeviceId(),
+      },
+      body: JSON.stringify({ nickname, mobile, password }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || '注册失败');
+    }
+
+    const data = await resp.json();
+    const token = data.token;
+    if (!token) throw new Error('注册成功但未返回 token');
+
+    localStorage.setItem(TOKEN_KEY, token);
+    if (data.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    }
+
+    registerStatus.textContent = '注册成功';
+    showToast('注册成功');
+    mobileInput.value = mobile;
+    passwordInput.value = '';
+    showLoginView();
+    renderApp();
+    connectMessageSocket(token);
+  } catch (error) {
+    registerStatus.textContent = error.message || '注册失败';
+    showToast(error.message || '注册失败');
+  }
+}
+
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   login();
 });
 
-// captcha interactions
-// if (refreshCaptchaBtn) refreshCaptchaBtn.addEventListener('click', fetchCaptcha);
-if (captchaImage) captchaImage.addEventListener('click', fetchCaptcha);
-// if (mobileInput) mobileInput.addEventListener('blur', fetchCaptcha);
+registerForm.addEventListener('submit', registerUser);
 
-// initial captcha load
-window.addEventListener('load', () => {
-  // load captcha for current mobile value
-  fetchCaptcha();
-});
+if (goRegisterLink) {
+  goRegisterLink.addEventListener('click', (event) => {
+    event.preventDefault();
+    showRegisterView();
+  });
+}
 
-logoutBtn.addEventListener('click', logout);
-uploadBtn.addEventListener('click', uploadFile);
-sendMessageBtn.addEventListener('click', sendTestMessage);
-sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
+if (goLoginLink) {
+  goLoginLink.addEventListener('click', (event) => {
+    event.preventDefault();
+    showLoginView();
+  });
+}
+
+if (refreshCaptchaBtn) {
+  refreshCaptchaBtn.addEventListener('click', fetchCaptcha);
+}
+
+if (captchaImage) {
+  captchaImage.addEventListener('click', fetchCaptcha);
+}
+
+if (dialogCloseBtn) {
+  dialogCloseBtn.addEventListener('click', closeMessageDialog);
+}
 
 if (getSmsBtn) getSmsBtn.addEventListener('click', requestSmsCode);
 if (smsLoginBtn) smsLoginBtn.addEventListener('click', mobileLoginWithCode);
+if (getRegisterSmsBtn) getRegisterSmsBtn.addEventListener('click', requestRegisterSmsCode);
+if (logoutBtn) logoutBtn.addEventListener('click', logout);
+if (uploadBtn) uploadBtn.addEventListener('click', uploadFile);
+if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendTestMessage);
+if (sendMessage2Btn) sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
 if (erpBtn) erpBtn.addEventListener('click', fetchErpCurrentPlant);
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();
+  fetchCaptcha();
 
   const token = getToken();
   if (token) {
