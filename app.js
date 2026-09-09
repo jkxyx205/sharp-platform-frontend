@@ -507,7 +507,7 @@ function sendMessageViaStomp() {
     return;
   }
 
-  stompClient.send('/api/platform/app/echo', {}, payload);
+  stompClient.send('/app/echo', {}, payload);
   sendMessageStatus.textContent = `已通过 STOMP 发送消息：${payload}`;
   showToast('已发送 STOMP 消息');
 }

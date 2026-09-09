@@ -331,11 +331,11 @@ stompClient = Stomp.over(socket);
 #### 3.7.3 发送消息
 
 发送地址：
-- `/api/platform/app/echo`
+- `/app/echo`
 
 实际代码：
 ```javascript
-stompClient.send('/api/platform/app/echo', {}, payload);
+stompClient.send('/app/echo', {}, payload);
 ```
 
 其中 `payload` 来自页面 `textarea` 内容，不写死，取自用户输入：
