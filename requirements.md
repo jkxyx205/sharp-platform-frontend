@@ -2,11 +2,25 @@
 
 BASE_URL = http://localhost:8769
 
+## 注册
+
+### 发送注册短信验证码 code 
+curl --location 'http://localhost:8769/sms/{mobile}/register' \
+--header 'deviceId: <mobile>'
+
+### 注册
+
+curl --location 'http://localhost:8769/auth/register?mobile={mobile}&code={code}' \
+--header 'deviceId: <mobile>' \
+--header 'Content-Type: application/json' \
+--data '{"nickname":"Rick","mobile":"{mobile}","password":"111111"}'
+
+
 ## 登录
 
 ### 手机/密码登录
 
-curl --location 'http://localhost:8769/auth/login' \
+curl --location 'http://localhost:8769/auth/login?code={code}' \
 --header 'Content-Type: application/json' \
 --data '{
     "mobile": "17787878767",
@@ -25,7 +39,7 @@ curl --location 'http://localhost:8769/auth/login' \
 }
 ```
 
-### 手机验证码
+### 手机验证码登录
 
 获取手机验证码：
     curl --location 'http://localhost:8769/sms/{mobile}/mobile_login' \
@@ -33,11 +47,12 @@ curl --location 'http://localhost:8769/auth/login' \
 --header 'Authorization: Bearer <token>'
 
 发送登录请求：
-curl --location 'http://localhost:8769/auth/mobile_login?code=${code}' \
+curl --location 'http://localhost:8769/auth/mobile_login?mobile={mobile}&code={code}' \
 --header 'Content-Type: application/json' \
---header 'deviceId: {mobile}' \
+--header 'deviceId: <mobile>' \
 --data '{
-    "mobile": "17787878767"
+    "mobile": "<mobile>",
+    "code": <code>
 }'
 
 ```
@@ -50,7 +65,7 @@ curl --location 'http://localhost:8769/auth/mobile_login?code=${code}' \
         "avatar": null
     }
 }
-
+```
 
 ## 退出登录
 
