@@ -15,6 +15,18 @@ curl --location 'http://localhost:8769/auth/register?mobile={mobile}&code={code}
 --header 'Content-Type: application/json' \
 --data '{"nickname":"Rick","mobile":"{mobile}","password":"111111"}'
 
+```
+{
+    "token": "e89faea9e23e4bcab0e6aa7ed0769162",
+    "user": {
+        "id": 1127646863076364288,
+        "nickname": "sm",
+        "mobile": "17787878767",
+        "avatar": null
+    }
+}
+```
+
 
 ## 登录
 
