@@ -51,6 +51,11 @@ const erpBtn = document.getElementById('erpBtn');
 const erpStatus = document.getElementById('erpStatus');
 const erpData = document.getElementById('erpData');
 
+const erpBtn2 = document.getElementById('erpBtn2');
+const erpStatus2 = document.getElementById('erpStatus2');
+const erpData2 = document.getElementById('erpData2');
+
+
 let stompClient = null;
 let smsCountdownTimer = null;
 let registerCountdownTimer = null;
@@ -493,6 +498,44 @@ async function fetchErpCurrentPlant() {
   }
 }
 
+async function fetchErpPermissionData() {
+  const token = getToken();
+  if (!token) {
+    showToast('请先登录');
+    if (erpStatus2) erpStatus2.textContent = '请先登录';
+    return;
+  }
+
+  if (erpStatus2) erpStatus2.textContent = '加载中...';
+  if (erpData2) erpData2.textContent = '';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/erp/999/plants/permission`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+         Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || `请求失败: ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    if (erpData2) erpData2.textContent = text;
+    if (erpStatus2) erpStatus2.textContent = '加载成功';
+    showToast('ERP 数据加载成功');
+  } catch (error) {
+    console.error('fetchErpPermissionData failed', error);
+    if (erpStatus2) erpStatus2.textContent = error.message || '加载失败';
+    if (erpData2) erpData2.textContent = '';
+    showToast(error.message || '加载 ERP 数据失败');
+  }
+}
+
 function sendMessageViaStomp() {
   if (!stompClient || !stompClient.connected) {
     showToast('消息通道未连接');
@@ -733,6 +776,7 @@ if (uploadBtn) uploadBtn.addEventListener('click', uploadFile);
 if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendTestMessage);
 if (sendMessage2Btn) sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
 if (erpBtn) erpBtn.addEventListener('click', fetchErpCurrentPlant);
+if (erpBtn2) erpBtn2.addEventListener('click', fetchErpPermissionData);
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();
