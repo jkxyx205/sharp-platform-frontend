@@ -155,7 +155,8 @@ input {
   font-size: 0.96rem;
 }
 
-.form-stack input {
+.form-stack input,
+.form-stack select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -164,7 +165,8 @@ input {
   color: var(--text);
 }
 
-.form-stack input:focus {
+.form-stack input:focus,
+.form-stack select:focus {
   outline: 2px solid rgba(45, 109, 246, 0.14);
   border-color: var(--primary);
 }

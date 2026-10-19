@@ -55,6 +55,32 @@ const erpBtn2 = document.getElementById('erpBtn2');
 const erpStatus2 = document.getElementById('erpStatus2');
 const erpData2 = document.getElementById('erpData2');
 
+const myEnumForm = document.getElementById('myEnumForm');
+const myEnumCodeInput = document.getElementById('myEnumCode');
+const myEnumNameInput = document.getElementById('myEnumName');
+const myEnumDescriptionInput = document.getElementById('myEnumDescription');
+const myEnumStatus = document.getElementById('myEnumStatus');
+const myEnumNameEnumSelect = document.getElementById('myEnumNameEnum');
+const myEnumCodeEnumSelect = document.getElementById('myEnumCodeEnum');
+const myEnumSimpleEnumSelect = document.getElementById('myEnumSimpleEnum');
+const myEnumCodeIntegerEnumSelect = document.getElementById('myEnumCodeIntegerEnum');
+const myEnumMaterialTypeSelect = document.getElementById('myEnumMaterialType');
+const myEnumJudgeLevelEnumSelect = document.getElementById('myEnumJudgeLevelEnum');
+const materialGroupSelect = document.getElementById('materialGroup');
+const myEnumQueryIdInput = document.getElementById('myEnumQueryId');
+const myEnumQueryBtn = document.getElementById('myEnumQueryBtn');
+const myEnumQueryStatus = document.getElementById('myEnumQueryStatus');
+const myEnumQueryData = document.getElementById('myEnumQueryData');
+const MY_ENUM_DICT_SELECTS = [
+  { code: 'NameEnum', select: myEnumNameEnumSelect },
+  { code: 'CodeEnum', select: myEnumCodeEnumSelect },
+  { code: 'SimpleEnum', select: myEnumSimpleEnumSelect },
+  { code: 'CodeIntegerEnum', select: myEnumCodeIntegerEnumSelect },
+  { code: 'MATERIAL_TYPE', select: myEnumMaterialTypeSelect },
+  { code: 'JudgeLevelEnum', select: myEnumJudgeLevelEnumSelect },
+  // { code: 'materialGroup', select: materialGroupSelect } // 不通过字典查询，手动维护 option
+];
+
 
 let stompClient = null;
 let smsCountdownTimer = null;
@@ -536,6 +562,138 @@ async function fetchErpPermissionData() {
   }
 }
 
+async function loadMyEnumDicts() {
+  const token = getToken();
+  if (!token) {
+    showToast('请先登录');
+    if (erpStatus2) erpStatus2.textContent = '请先登录';
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/site/999/dicts?codes=NameEnum,CodeEnum,SimpleEnum,CodeIntegerEnum,MATERIAL_TYPE,JudgeLevelEnum`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+         Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error(`获取字典失败: ${resp.status}`);
+    }
+
+    const data = await resp.json();
+
+    MY_ENUM_DICT_SELECTS.forEach(({ code, select }) => {
+      if (!select) return;
+      select.innerHTML = '';
+      (data[code] || []).forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = item.label;
+        select.appendChild(option);
+      });
+    });
+  } catch (error) {
+    console.error('loadMyEnumDicts failed', error);
+    if (myEnumStatus) myEnumStatus.textContent = error.message || '获取字典失败';
+    showToast(error.message || '获取字典失败');
+  }
+}
+
+async function submitMyEnum(event) {
+  event.preventDefault();
+
+  const token = getToken();
+  if (!token) {
+    showToast('请先登录');
+    return;
+  }
+
+  const payload = {
+    code: (myEnumCodeInput.value || '').trim(),
+    name: (myEnumNameInput.value || '').trim(),
+    description: (myEnumDescriptionInput.value || '').trim(),
+    nameEnum: myEnumNameEnumSelect?.value || '',
+    code_enum: myEnumCodeEnumSelect?.value || '',
+    simple_enum: myEnumSimpleEnumSelect?.value || '',
+    codeIntegerEnum: myEnumCodeIntegerEnumSelect?.value || '',
+    materialType: myEnumMaterialTypeSelect?.value || '',
+    judgeLevel: myEnumJudgeLevelEnumSelect?.value || '',
+    materialGroup: materialGroupSelect?.value || '',
+    
+  };
+
+  myEnumStatus.textContent = '提交中...';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/site/999/my_enum`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || `提交失败: ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    myEnumStatus.textContent = `提交成功${text ? `: ${text}` : ''}`;
+    showToast('提交成功');
+  } catch (error) {
+    console.error('submitMyEnum failed', error);
+    myEnumStatus.textContent = error.message || '提交失败';
+    showToast(error.message || '提交失败');
+  }
+}
+
+async function queryMyEnum() {
+  const token = getToken();
+  const id = (myEnumQueryIdInput.value || '').trim();
+
+  if (!token) {
+    showToast('请先登录');
+    return;
+  }
+
+  if (!id) {
+    showToast('请输入查询 ID');
+    return;
+  }
+
+  myEnumQueryStatus.textContent = '查询中...';
+  myEnumQueryData.textContent = '';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/site/999/my_enum/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || `查询失败: ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    myEnumQueryData.textContent = text;
+    myEnumQueryStatus.textContent = '查询成功';
+    showToast('查询成功');
+  } catch (error) {
+    console.error('queryMyEnum failed', error);
+    myEnumQueryStatus.textContent = error.message || '查询失败';
+    showToast(error.message || '查询失败');
+  }
+}
+
 function sendMessageViaStomp() {
   if (!stompClient || !stompClient.connected) {
     showToast('消息通道未连接');
@@ -777,10 +935,13 @@ if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendTestMessage);
 if (sendMessage2Btn) sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
 if (erpBtn) erpBtn.addEventListener('click', fetchErpCurrentPlant);
 if (erpBtn2) erpBtn2.addEventListener('click', fetchErpPermissionData);
+if (myEnumForm) myEnumForm.addEventListener('submit', submitMyEnum);
+if (myEnumQueryBtn) myEnumQueryBtn.addEventListener('click', queryMyEnum);
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();
   fetchCaptcha();
+  loadMyEnumDicts();
 
   const token = getToken();
   if (token) {

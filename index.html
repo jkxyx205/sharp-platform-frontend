@@ -145,6 +145,68 @@
             <h2>已上传文件</h2>
             <ul id="fileList" class="file-list"></ul>
           </div>
+
+          <div class="card">
+            <h2>枚举测试表单</h2>
+            <form id="myEnumForm" class="form-stack compact-form">
+              <label>
+                <span>code</span>
+                <input id="myEnumCode" type="text" placeholder="请输入 code" />
+              </label>
+              <label>
+                <span>name</span>
+                <input id="myEnumName" type="text" placeholder="请输入 name" />
+              </label>
+              <label>
+                <span>description</span>
+                <input id="myEnumDescription" type="text" placeholder="请输入 description" />
+              </label>
+              <label>
+                <span>name_enum</span>
+                <select id="myEnumNameEnum"></select>
+              </label>
+              <label>
+                <span>code_enum</span>
+                <select id="myEnumCodeEnum"></select>
+              </label>
+              <label>
+                <span>simple_enum</span>
+                <select id="myEnumSimpleEnum"></select>
+              </label>
+              <label>
+                <span>codeIntegerEnum</span>
+                <select id="myEnumCodeIntegerEnum"></select>
+              </label>
+              <label>
+                <span>materialType</span>
+                <select id="myEnumMaterialType"></select>
+              </label>
+              <label>
+                <span>judgeLevelEnum</span>
+                <select id="myEnumJudgeLevelEnum"></select>
+              </label>
+            <label>
+                <span>materialGroup</span>
+                <select id="materialGroup">
+                  <option value="0001">物料组1</option>
+                  <option value="0002">物料组2</option>
+                </select>
+              </label>
+              <button type="submit" class="primary-btn">提交</button>
+              <p id="myEnumStatus" class="erp-data"></p>
+            </form>
+
+            <hr />
+            <div class="form-stack compact-form">
+              <label>
+                <span>查询 ID</span>
+                <input id="myEnumQueryId" type="text" placeholder="例如 1143554773060947968" />
+              </label>
+              <button id="myEnumQueryBtn" type="button" class="secondary-btn">查询</button>
+              <p id="myEnumQueryStatus" class="status-text"></p>
+              <pre id="myEnumQueryData" class="erp-data" aria-live="polite"></pre>
+            </div>
+          </div>
         </div>
       </section>
     </div>
