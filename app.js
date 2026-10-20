@@ -630,6 +630,10 @@ async function submitMyEnum(event) {
 
   try {
     const resp = await fetch(`${BASE_URL}/api/site/999/my_enum`, {
+    // const resp = await fetch(`${BASE_URL}/api/site/999/my_enum/valid`, {
+    // const resp = await fetch(`${BASE_URL}/api/site/999/my_enum/1143628300720017408`, {
+      // const resp = await fetch(`${BASE_URL}/api/site/999/my_enum/patch/1143628300720017408`, {
+      // method: 'PATCH',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
