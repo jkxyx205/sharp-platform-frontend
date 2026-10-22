@@ -55,6 +55,10 @@ const erpBtn2 = document.getElementById('erpBtn2');
 const erpStatus2 = document.getElementById('erpStatus2');
 const erpData2 = document.getElementById('erpData2');
 
+const dogForm = document.getElementById('dogForm');
+const dogNameInput = document.getElementById('dogName');
+const dogAgeInput = document.getElementById('dogAge');
+const dogDescriptionInput = document.getElementById('dogDescription');
 const myEnumForm = document.getElementById('myEnumForm');
 const myEnumCodeInput = document.getElementById('myEnumCode');
 const myEnumNameInput = document.getElementById('myEnumName');
@@ -603,6 +607,61 @@ async function loadMyEnumDicts() {
   }
 }
 
+async function submitDogForm(event) {
+  event.preventDefault();
+
+  const token = getToken();
+  if (!token) {
+    showToast('请先登录');
+    return;
+  }
+
+  const ageValue = Number(dogAgeInput?.value || 0);
+  const payload = {
+    name: (dogNameInput?.value || '').trim(),
+    description: (dogDescriptionInput?.value || '').trim(),
+    age: Number.isFinite(ageValue) ? ageValue : 0
+  };
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined || payload[key] === null || payload[key] === '') {
+      delete payload[key];
+    }
+  });
+
+  if (!payload.name || payload.age === undefined || Number.isNaN(payload.age)) {
+    dogStatus.textContent = '请填写 name 和 age';
+    showToast('请填写完整狗信息');
+    return;
+  }
+
+  dogStatus.textContent = '提交中...';
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/site/999/dogs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || `提交失败: ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    dogStatus.textContent = `提交成功${text ? `: ${text}` : ''}`;
+    showToast('提交成功');
+  } catch (error) {
+    console.error('submitDogForm failed', error);
+    dogStatus.textContent = error.message || '提交失败';
+    showToast(error.message || '提交失败');
+  }
+}
+
 async function submitMyEnum(event) {
   event.preventDefault();
 
@@ -939,6 +998,7 @@ if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendTestMessage);
 if (sendMessage2Btn) sendMessage2Btn.addEventListener('click', sendMessageViaStomp);
 if (erpBtn) erpBtn.addEventListener('click', fetchErpCurrentPlant);
 if (erpBtn2) erpBtn2.addEventListener('click', fetchErpPermissionData);
+if (dogForm) dogForm.addEventListener('submit', submitDogForm);
 if (myEnumForm) myEnumForm.addEventListener('submit', submitMyEnum);
 if (myEnumQueryBtn) myEnumQueryBtn.addEventListener('click', queryMyEnum);
 
